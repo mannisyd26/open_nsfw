@@ -27,7 +27,7 @@ def resize_image(data, sz=(256, 256)):
     :returns bytearray:
         A byte array with the resized image
     """
-
+    # bytes rather than stringIO
     im = Image.open(BytesIO(data))
     if im.mode != "RGB":
         im = im.convert('RGB')
