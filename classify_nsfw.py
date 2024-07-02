@@ -12,7 +12,7 @@ import argparse
 import glob
 import time
 from PIL import Image
-from StringIO import StringIO
+from io import StringIO, BytesIO
 import caffe
 
 
@@ -27,12 +27,12 @@ def resize_image(data, sz=(256, 256)):
     :returns bytearray:
         A byte array with the resized image
     """
-    img_data = str(data)
-    im = Image.open(StringIO(img_data))
+
+    im = Image.open(BytesIO(data))
     if im.mode != "RGB":
         im = im.convert('RGB')
     imr = im.resize(sz, resample=Image.BILINEAR)
-    fh_im = StringIO()
+    fh_im = BytesIO()
     imr.save(fh_im, format='JPEG')
     fh_im.seek(0)
     return bytearray(fh_im.read())
@@ -60,12 +60,12 @@ def caffe_preprocess_and_compute(pimg, caffe_transformer=None, caffe_net=None,
             output_layers = caffe_net.outputs
 
         img_data_rs = resize_image(pimg, sz=(256, 256))
-        image = caffe.io.load_image(StringIO(img_data_rs))
+        image = caffe.io.load_image(BytesIO(img_data_rs))
 
         H, W, _ = image.shape
         _, _, h, w = caffe_net.blobs['data'].data.shape
-        h_off = max((H - h) / 2, 0)
-        w_off = max((W - w) / 2, 0)
+        h_off = max((H - h) // 2, 0)
+        w_off = max((W - w) // 2, 0)
         crop = image[h_off:h_off + h, w_off:w_off + w, :]
         transformed_image = caffe_transformer.preprocess('data', crop)
         transformed_image.shape = (1,) + transformed_image.shape
@@ -101,7 +101,7 @@ def main(argv):
     )
 
     args = parser.parse_args()
-    image_data = open(args.input_file).read()
+    image_data = open(args.input_file, 'rb').read()
 
     # Pre-load caffe model.
     nsfw_net = caffe.Net(args.model_def,  # pylint: disable=invalid-name
@@ -120,7 +120,7 @@ def main(argv):
 
     # Scores is the array containing SFW / NSFW image probabilities
     # scores[1] indicates the NSFW probability
-    print "NSFW score:  " , scores[1]
+    print ("NSFW score:  " , scores[1])
 
 
 
